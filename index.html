@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradeLog - 投資判断ログ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <header>
+      <p class="eyebrow">INVESTMENT JOURNAL</p>
+      <h1>TradeLog</h1>
+      <p class="subtitle">「なぜ買った？」と「どう終わった？」を残す。</p>
+    </header>
+
+    <section class="card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">DASHBOARD</p>
+          <h2>投資成績</h2>
+        </div>
+        <div class="backup-actions">
+          <button id="exportCsv" class="secondary" type="button">CSVを書き出す</button>
+          <label class="file-button">
+            CSVを読み込む
+            <input id="importCsv" type="file" accept=".csv,text/csv" />
+          </label>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><span>総取引数</span><strong id="totalTrades">0</strong></div>
+        <div class="stat-card"><span>売却済み</span><strong id="closedTrades">0</strong></div>
+        <div class="stat-card"><span>勝率</span><strong id="winRate">-</strong></div>
+        <div class="stat-card"><span>累計損益</span><strong id="totalProfit">-</strong></div>
+        <div class="stat-card"><span>平均利益率</span><strong id="avgReturn">-</strong></div>
+      </div>
+
+      <div class="charts-grid">
+        <section class="chart-card">
+          <div class="chart-head">
+            <p class="eyebrow">PROFIT CURVE</p>
+            <h3>累計損益の推移</h3>
+          </div>
+          <canvas id="profitChart"></canvas>
+          <p id="profitChartEmpty" class="muted chart-empty">売却済みデータが増えると表示されます。</p>
+        </section>
+
+        <section class="chart-card">
+          <div class="chart-head">
+            <p class="eyebrow">CATEGORY RETURN</p>
+            <h3>カテゴリー別 平均利益率</h3>
+          </div>
+          <canvas id="categoryChart"></canvas>
+          <p id="categoryChartEmpty" class="muted chart-empty">売却済みデータが増えると表示されます。</p>
+        </section>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-head">
+          <div>
+            <p class="eyebrow">BEHAVIOR INSIGHTS</p>
+            <h3>あなたの投資のクセ</h3>
+          </div>
+          <span id="insightCount" class="badge">分析前</span>
+        </div>
+        <div id="insightList" class="insight-list">
+          <p class="muted">売却済みの取引が増えると、ここに自動分析が表示されます。</p>
+        </div>
+      </div>
+
+      <div class="analysis-grid">
+        <section class="analysis-card">
+          <h3>予想精度</h3>
+          <div id="predictionSummary" class="analysis-content muted">データがありません。</div>
+        </section>
+
+        <section class="analysis-card">
+          <h3>ルール遵守</h3>
+          <div id="ruleSummary" class="analysis-content muted">データがありません。</div>
+        </section>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>新しい投資判断を記録</h2>
+      <form id="tradeForm">
+        <div class="grid">
+          <label>銘柄名
+            <input id="symbol" type="text" placeholder="例：サンプルテック株式会社" required />
+          </label>
+          <label>買付日
+            <input id="buyDate" type="date" required />
+          </label>
+        </div>
+
+        <div class="grid">
+          <label>買値
+            <input id="buyPrice" type="number" min="0" step="0.01" placeholder="例：1000" required />
+          </label>
+          <label>株数
+            <input id="shares" type="number" min="1" step="1" placeholder="例：100" required />
+          </label>
+        </div>
+
+        <label>買った理由
+          <textarea id="reason" rows="4" placeholder="例：新サービスの成長で業績拡大を期待した" required></textarea>
+        </label>
+
+        <div class="grid">
+          <label>理由カテゴリー
+            <select id="category">
+              <option value="決算">決算</option>
+              <option value="材料">材料</option>
+              <option value="割安">割安</option>
+              <option value="チャート">チャート</option>
+              <option value="配当">配当</option>
+              <option value="長期成長">長期成長</option>
+              <option value="その他">その他</option>
+            </select>
+          </label>
+
+          <label>自信度
+            <select id="confidence">
+              <option value="1">★☆☆☆☆</option>
+              <option value="2">★★☆☆☆</option>
+              <option value="3" selected>★★★☆☆</option>
+              <option value="4">★★★★☆</option>
+              <option value="5">★★★★★</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid">
+          <label>損切り条件
+            <input id="stopLoss" type="text" placeholder="例：900円割れ" />
+          </label>
+          <label>売却条件
+            <input id="sellRule" type="text" placeholder="例：1200円到達、または次回決算後に再判断" />
+          </label>
+        </div>
+
+        <button type="submit">記録する</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <div>
+          <h2>投資判断ログ</h2>
+          <p id="countText">0件</p>
+        </div>
+        <button id="clearAll" class="secondary" type="button">全削除</button>
+      </div>
+
+      <div class="filter-panel">
+        <input id="searchText" type="search" placeholder="銘柄名・買った理由で検索" />
+
+        <select id="statusFilter">
+          <option value="all">すべての状態</option>
+          <option value="open">保有中</option>
+          <option value="closed">売却済み</option>
+        </select>
+
+        <select id="categoryFilter">
+          <option value="all">すべてのカテゴリー</option>
+          <option value="決算">決算</option>
+          <option value="材料">材料</option>
+          <option value="割安">割安</option>
+          <option value="チャート">チャート</option>
+          <option value="配当">配当</option>
+          <option value="長期成長">長期成長</option>
+          <option value="その他">その他</option>
+        </select>
+
+        <select id="confidenceFilter">
+          <option value="all">すべての自信度</option>
+          <option value="5">★★★★★</option>
+          <option value="4">★★★★☆</option>
+          <option value="3">★★★☆☆</option>
+          <option value="2">★★☆☆☆</option>
+          <option value="1">★☆☆☆☆</option>
+        </select>
+
+        <button id="resetFilters" class="secondary" type="button">絞り込み解除</button>
+      </div>
+
+      <div id="emptyState" class="empty">まだ記録がありません。最初の1件を追加してみよう。</div>
+      <div id="noResults" class="empty" style="display:none;">条件に一致する取引がありません。</div>
+      <div id="tradeList" class="trade-list"></div>
+    </section>
+  </main>
+
+  <dialog id="sellDialog">
+    <form id="sellForm" method="dialog" class="sell-form">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">CLOSE TRADE</p>
+          <h2 id="sellTitle">売却結果を登録</h2>
+        </div>
+        <button type="button" class="icon-btn" id="closeDialog">×</button>
+      </div>
+
+      <input type="hidden" id="sellTradeId" />
+
+      <div class="grid">
+        <label>売却日<input id="sellDate" type="date" required /></label>
+        <label>売値<input id="sellPrice" type="number" min="0" step="0.01" required /></label>
+      </div>
+
+      <label>売った理由
+        <textarea id="sellReason" rows="3" placeholder="例：目標株価に到達したため"></textarea>
+      </label>
+
+      <label>当初の予想は？
+        <select id="predictionResult">
+          <option value="○">○ 当たった</option>
+          <option value="△">△ 半分当たった</option>
+          <option value="×">× 外れた</option>
+        </select>
+      </label>
+
+      <div class="grid">
+        <label>損切りルールを守れた？
+          <select id="stopRuleKept">
+            <option value="該当なし">該当なし</option>
+            <option value="はい">はい</option>
+            <option value="いいえ">いいえ</option>
+          </select>
+        </label>
+
+        <label>売却ルールを守れた？
+          <select id="sellRuleKept">
+            <option value="はい">はい</option>
+            <option value="いいえ">いいえ</option>
+            <option value="該当なし">該当なし</option>
+          </select>
+        </label>
+      </div>
+
+      <label>反省・学んだこと
+        <textarea id="reflection" rows="4"></textarea>
+      </label>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary" id="cancelSell">キャンセル</button>
+        <button type="submit">売却結果を保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="editDialog">
+    <form id="editForm" class="sell-form">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">EDIT TRADE</p>
+          <h2>取引を編集</h2>
+        </div>
+        <button type="button" class="icon-btn" id="closeEditDialog">×</button>
+      </div>
+
+      <input type="hidden" id="editTradeId" />
+
+      <div class="grid">
+        <label>銘柄名<input id="editSymbol" type="text" required /></label>
+        <label>買付日<input id="editBuyDate" type="date" required /></label>
+      </div>
+
+      <div class="grid">
+        <label>買値<input id="editBuyPrice" type="number" min="0" step="0.01" required /></label>
+        <label>株数<input id="editShares" type="number" min="1" step="1" required /></label>
+      </div>
+
+      <label>買った理由<textarea id="editReason" rows="4" required></textarea></label>
+
+      <div class="grid">
+        <label>理由カテゴリー
+          <select id="editCategory">
+            <option value="決算">決算</option>
+            <option value="材料">材料</option>
+            <option value="割安">割安</option>
+            <option value="チャート">チャート</option>
+            <option value="配当">配当</option>
+            <option value="長期成長">長期成長</option>
+            <option value="その他">その他</option>
+          </select>
+        </label>
+
+        <label>自信度
+          <select id="editConfidence">
+            <option value="1">★☆☆☆☆</option>
+            <option value="2">★★☆☆☆</option>
+            <option value="3">★★★☆☆</option>
+            <option value="4">★★★★☆</option>
+            <option value="5">★★★★★</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="grid">
+        <label>損切り条件<input id="editStopLoss" type="text" /></label>
+        <label>売却条件<input id="editSellRule" type="text" /></label>
+      </div>
+
+      <div id="editSellSection">
+        <hr />
+        <h3>売却情報</h3>
+
+        <div class="grid">
+          <label>売却日<input id="editSellDate" type="date" /></label>
+          <label>売値<input id="editSellPrice" type="number" min="0" step="0.01" /></label>
+        </div>
+
+        <label>売った理由<textarea id="editSellReason" rows="3"></textarea></label>
+
+        <div class="grid">
+          <label>予想評価
+            <select id="editPredictionResult">
+              <option value="○">○ 当たった</option>
+              <option value="△">△ 半分当たった</option>
+              <option value="×">× 外れた</option>
+            </select>
+          </label>
+
+          <label>損切りルール
+            <select id="editStopRuleKept">
+              <option value="該当なし">該当なし</option>
+              <option value="はい">はい</option>
+              <option value="いいえ">いいえ</option>
+            </select>
+          </label>
+        </div>
+
+        <label>売却ルール
+          <select id="editSellRuleKept">
+            <option value="はい">はい</option>
+            <option value="いいえ">いいえ</option>
+            <option value="該当なし">該当なし</option>
+          </select>
+        </label>
+
+        <label>反省・学び<textarea id="editReflection" rows="4"></textarea></label>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary" id="cancelEdit">キャンセル</button>
+        <button type="submit">変更を保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
