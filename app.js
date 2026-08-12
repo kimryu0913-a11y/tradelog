@@ -558,4 +558,26 @@ document.getElementById("importCsv").addEventListener("change",async e=>{
 
 window.addEventListener("resize",renderTrades);
 
+
+const startLoggingButton = document.getElementById("startLogging");
+const showDemoButton = document.getElementById("showDemo");
+const emptyStartButton = document.getElementById("emptyStartButton");
+
+function scrollToLogging() {
+  document.getElementById("loggingSection")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+  setTimeout(() => document.getElementById("symbol")?.focus(), 450);
+}
+
+startLoggingButton?.addEventListener("click", scrollToLogging);
+emptyStartButton?.addEventListener("click", scrollToLogging);
+showDemoButton?.addEventListener("click", () => {
+  document.getElementById("demoSection")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+});
+
 renderTrades();

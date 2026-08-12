@@ -8,11 +8,64 @@
 </head>
 <body>
   <main class="container">
-    <header>
-      <p class="eyebrow">INVESTMENT JOURNAL</p>
-      <h1>TradeLog</h1>
-      <p class="subtitle">「なぜ買った？」と「どう終わった？」を記録する。</p>
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">INVESTMENT JOURNAL</p>
+        <h1>TradeLog</h1>
+        <p class="hero-lead">投資判断を記録して、あとから「自分の勝ち方・負け方」を見つける。</p>
+        <p class="hero-sub">
+          買った理由、損切り条件、自信度、売却結果を残すだけ。
+          記録が増えるほど、あなた自身の投資傾向が見えてきます。
+        </p>
+        <div class="hero-actions">
+          <button id="startLogging" type="button">まず1件記録する</button>
+          <button id="showDemo" class="secondary" type="button">使い方を見る</button>
+        </div>
+        <p class="hero-note">※ 投資助言ではなく、自分の判断を振り返るための記録ツールです。</p>
+      </div>
+
+      <div class="hero-preview">
+        <div class="preview-label">こんな気づきが見える</div>
+        <div class="preview-insight">
+          <strong>「決算」カテゴリーが比較的得意</strong>
+          <span>平均利益率 +6.4% / 勝率 70%</span>
+        </div>
+        <div class="preview-insight">
+          <strong>高自信度の取引は要注意</strong>
+          <span>★★★★★ の平均利益率 -1.8%</span>
+        </div>
+        <div class="preview-insight">
+          <strong>ルール遵守時の方が安定</strong>
+          <span>遵守時 +4.2% / 非遵守時 -2.7%</span>
+        </div>
+        <p class="preview-foot">※ 上記は架空のサンプルデータです。</p>
+      </div>
     </header>
+
+    <section id="demoSection" class="card onboarding-card">
+      <div>
+        <p class="eyebrow">HOW IT WORKS</p>
+        <h2>3ステップで使えます</h2>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <span class="step-number">1</span>
+          <strong>買う前に記録</strong>
+          <p>買った理由・損切り条件・自信度を残します。</p>
+        </div>
+        <div class="step-card">
+          <span class="step-number">2</span>
+          <strong>売った後に振り返る</strong>
+          <p>売値・売却理由・予想が当たったかを記録します。</p>
+        </div>
+        <div class="step-card">
+          <span class="step-number">3</span>
+          <strong>クセを分析</strong>
+          <p>勝率、カテゴリー別成績、ルール遵守などから傾向を見つけます。</p>
+        </div>
+      </div>
+    </section>
 
     <section class="card">
       <div class="section-heading">
@@ -83,8 +136,14 @@
       </div>
     </section>
 
-    <section class="card">
-      <h2>新しい投資判断を記録</h2>
+    <section id="loggingSection" class="card">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">NEW TRADE</p>
+          <h2>新しい投資判断を記録</h2>
+          <p class="section-help">最初から完璧に書かなくてOK。後から編集できます。</p>
+        </div>
+      </div>
       <form id="tradeForm">
         <div class="grid">
           <label>銘柄名
@@ -186,7 +245,11 @@
         <button id="resetFilters" class="secondary" type="button">絞り込み解除</button>
       </div>
 
-      <div id="emptyState" class="empty">まだ記録がありません。最初の1件を追加してみよう。</div>
+      <div id="emptyState" class="empty empty-onboarding">
+        <strong>まだ取引記録がありません。</strong>
+        <span>まずは最近の1取引を登録してみると、TradeLogの使い方がすぐ分かります。</span>
+        <button id="emptyStartButton" type="button">最初の取引を記録する</button>
+      </div>
       <div id="noResults" class="empty" style="display:none;">条件に一致する取引がありません。</div>
       <div id="tradeList" class="trade-list"></div>
     </section>
