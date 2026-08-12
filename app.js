@@ -170,31 +170,38 @@ function renderCategoryChart(metrics) {
 }
 
 function renderInsights(metrics) {
-  const list=document.getElementById("insightList");
-  const count=document.getElementById("insightCount");
-  if(metrics.length<3){
-    list.innerHTML=`<p class="muted">売却済みの取引が3件以上になると、自動分析を始めます。現在は ${metrics.length}件です。</p>`;
-    count.textContent=`${metrics.length}/3件`;
-    return;
-  }
-
+  const list=document.getElementById("insightList"),count=document.getElementById("insightCount");
+  if(metrics.length<3){list.innerHTML=`<p class="muted">売却済みの取引が3件以上になると、自動分析を始めます。現在は ${metrics.length}件です。</p>`;count.textContent=`${metrics.length}/3件`;return;}
   const insights=[];
-  const cats=Object.entries(makePerformanceRows(metrics,x=>x.trade.category||"その他"))
-    .filter(([,d])=>d.count>=2)
-    .map(([name,d])=>({name,count:d.count,avg:d.totalReturn/d.count,winRate:d.wins/d.count*100}));
-
-  if(cats.length){
-    const best=[...cats].sort((a,b)=>b.avg-a.avg)[0];
-    const worst=[...cats].sort((a,b)=>a.avg-b.avg)[0];
-    if(best.avg>0) insights.push({title:`「${best.name}」が比較的得意`,text:`${best.count}件の平均利益率は ${best.avg.toFixed(2)}%、勝率は ${best.winRate.toFixed(1)}% です。`});
-    if(worst.avg<0 && worst.name!==best.name) insights.push({title:`「${worst.name}」は要注意`,text:`${worst.count}件の平均利益率は ${worst.avg.toFixed(2)}% です。`});
-  }
-
-  if(!insights.length) insights.push({title:"まだ明確なクセは見つかっていません",text:"取引数が増えるほど傾向が見えやすくなります。"});
-  count.textContent=`${insights.length}件の気づき`;
-  list.innerHTML=insights.slice(0,5).map(x=>`<div class="insight-item"><strong>${escapeHtml(x.title)}</strong><span>${escapeHtml(x.text)}</span></div>`).join("");
+  const avg=a=>a.reduce((s,x)=>s+x.returnRate,0)/a.length;
+  const cats=Object.entries(makePerformanceRows(metrics,x=>x.trade.category||"その他")).filter(([,d])=>d.count>=2).map(([name,d])=>({name,count:d.count,avg:d.totalReturn/d.count,win:d.wins/d.count*100}));
+  if(cats.length){const best=[...cats].sort((a,b)=>b.avg-a.avg)[0],worst=[...cats].sort((a,b)=>a.avg-b.avg)[0];if(best.avg>0)insights.push({title:`「${best.name}」が比較的得意`,text:`平均利益率 ${best.avg.toFixed(2)}%、勝率 ${best.win.toFixed(1)}%（${best.count}件）。`});if(worst.avg<0&&worst.name!==best.name)insights.push({title:`「${worst.name}」は要注意`,text:`平均利益率 ${worst.avg.toFixed(2)}%（${worst.count}件）。`});}
+  const high=metrics.filter(x=>Number(x.trade.confidence)>=4),low=metrics.filter(x=>Number(x.trade.confidence)<=3);
+  if(high.length>=2&&low.length>=2&&Math.abs(avg(high)-avg(low))>=2){insights.push({title:avg(high)<avg(low)?"自信が強い取引ほど慎重に":"高自信度の判断が結果につながっています",text:`自信度4〜5は ${avg(high).toFixed(2)}%、1〜3は ${avg(low).toFixed(2)}%。`});}
+  const rules=metrics.map(x=>{const v=[x.trade.sell?.stopRuleKept,x.trade.sell?.sellRuleKept].filter(y=>y==="はい"||y==="いいえ");return v.length?{...x,kept:v.every(y=>y==="はい")}:null}).filter(Boolean);
+  const kept=rules.filter(x=>x.kept),broken=rules.filter(x=>!x.kept);
+  if(kept.length>=2&&broken.length>=2){insights.push({title:avg(kept)>avg(broken)?"ルールを守った取引の方が好成績":"ルール自体を見直す余地があります",text:`遵守時 ${avg(kept).toFixed(2)}%、非遵守時 ${avg(broken).toFixed(2)}%。`});}
+  const short=metrics.filter(x=>x.holdingDays<=7),long=metrics.filter(x=>x.holdingDays>=8);
+  if(short.length>=2&&long.length>=2&&Math.abs(avg(short)-avg(long))>=2){insights.push({title:avg(short)>avg(long)?"短期保有の方が相性良好":"長めの保有の方が相性良好",text:`7日以内 ${avg(short).toFixed(2)}%、8日以上 ${avg(long).toFixed(2)}%。`});}
+  if(!insights.length)insights.push({title:"まだ強いクセは見つかっていません",text:"取引数が増えるほど、自信度・保有期間・ルール遵守などの差が見えやすくなります。"});
+  count.textContent=`${insights.length}件の気づき`;list.innerHTML=insights.slice(0,6).map(x=>`<div class="insight-item"><strong>${escapeHtml(x.title)}</strong><span>${escapeHtml(x.text)}</span></div>`).join("");
 }
 
+function performanceTableHtml(rows){
+  if(!rows.length)return "データがありません。";
+  return `<div class="mini-performance">${rows.map(r=>`<div class="mini-row"><span>${escapeHtml(r.label)}</span><strong class="${r.avg>=0?"positive":"negative"}">${r.avg>=0?"+":""}${r.avg.toFixed(2)}%</strong><small>${r.count}件 / 勝率 ${r.winRate.toFixed(0)}%</small></div>`).join("")}</div>`;
+}
+function renderDeepAnalysis(metrics){
+  const toRows=(g,order)=>order.filter(k=>g[k]).map(k=>{const d=g[k];return{label:k,count:d.count,avg:d.totalReturn/d.count,winRate:d.wins/d.count*100}});
+  const cg=makePerformanceRows(metrics,x=>String(x.trade.confidence||""));
+  document.getElementById("confidenceSummary").innerHTML=performanceTableHtml(toRows(cg,["1","2","3","4","5"]).map(x=>({...x,label:`自信度 ${x.label}`})));
+  const bucket=x=>x.holdingDays<=3?"0〜3日":x.holdingDays<=7?"4〜7日":x.holdingDays<=30?"8〜30日":"31日以上";
+  const hg=makePerformanceRows(metrics,bucket);
+  document.getElementById("holdingSummary").innerHTML=performanceTableHtml(toRows(hg,["0〜3日","4〜7日","8〜30日","31日以上"]));
+  const rr=metrics.map(x=>{const v=[x.trade.sell?.stopRuleKept,x.trade.sell?.sellRuleKept].filter(y=>y==="はい"||y==="いいえ");return v.length?{...x,rule:v.every(y=>y==="はい")?"ルール遵守":"ルール非遵守"}:null}).filter(Boolean);
+  const rg=makePerformanceRows(rr,x=>x.rule);
+  document.getElementById("rulePerformanceSummary").innerHTML=performanceTableHtml(toRows(rg,["ルール遵守","ルール非遵守"]));
+}
 function renderDashboard(trades) {
   const closed=trades.filter(t=>t.sell);
   const metrics=closed.map(t=>({trade:t,...calcTradeMetrics(t)}));
@@ -204,6 +211,7 @@ function renderDashboard(trades) {
   renderProfitChart(metrics);
   renderCategoryChart(metrics);
   renderInsights(metrics);
+  renderDeepAnalysis(metrics);
 
   if(!closed.length){
     document.getElementById("winRate").textContent="-";

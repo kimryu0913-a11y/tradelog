@@ -404,3 +404,10 @@ hr {
   .hero-actions { flex-direction: column; }
   .hero-actions button { width: 100%; }
 }
+
+/* Ver.9 */
+.analysis-grid-v9{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:14px}
+.mini-performance{display:grid;gap:9px;margin-top:10px}
+.mini-row{display:grid;grid-template-columns:1fr auto;gap:3px 12px;padding:10px 0;border-bottom:1px solid #edf0f4}
+.mini-row:last-child{border-bottom:0}.mini-row span{font-weight:700;font-size:13px}.mini-row strong{font-size:14px}.mini-row small{grid-column:1/-1;color:#7b8596;font-size:11px}
+@media(max-width:900px){.analysis-grid-v9{grid-template-columns:1fr}}
