@@ -411,3 +411,9 @@ hr {
 .mini-row{display:grid;grid-template-columns:1fr auto;gap:3px 12px;padding:10px 0;border-bottom:1px solid #edf0f4}
 .mini-row:last-child{border-bottom:0}.mini-row span{font-weight:700;font-size:13px}.mini-row strong{font-size:14px}.mini-row small{grid-column:1/-1;color:#7b8596;font-size:11px}
 @media(max-width:900px){.analysis-grid-v9{grid-template-columns:1fr}}
+
+/* Ver.10 cloud save */
+.account-bar{display:flex;justify-content:space-between;gap:18px;align-items:center;background:white;border-radius:16px;padding:16px 18px;box-shadow:0 8px 28px rgba(25,32,45,.06);margin-bottom:18px}
+.save-mode-title{font-weight:800;font-size:16px}.save-mode-help{margin:4px 0 0;color:#687386;font-size:12px}.account-actions{display:flex;gap:10px;flex-wrap:wrap}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.auth-tab{background:#eef1f5;color:#1d2433}.auth-tab.active{background:#1d2433;color:white}.auth-message{margin:0;min-height:20px;color:#687386;font-size:13px;line-height:1.6}
+@media(max-width:700px){.account-bar{align-items:flex-start;flex-direction:column}.account-actions,.account-actions button{width:100%}}

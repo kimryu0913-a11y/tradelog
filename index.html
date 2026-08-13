@@ -41,6 +41,17 @@
         <p class="preview-foot">※ 上記は架空のサンプルデータです。</p>
       </div>
     </header>
+    <section class="account-bar">
+      <div>
+        <p class="eyebrow">SAVE MODE</p>
+        <div id="saveModeText" class="save-mode-title">ゲスト利用中</div>
+        <p id="saveModeHelp" class="save-mode-help">この端末のブラウザにのみ保存されています。</p>
+      </div>
+      <div class="account-actions">
+        <button id="openAuthButton" type="button">無料でクラウド保存</button>
+        <button id="logoutButton" class="secondary" type="button" style="display:none;">ログアウト</button>
+      </div>
+    </section>
 
     <section id="demoSection" class="card onboarding-card">
       <div>
@@ -419,6 +430,26 @@
     </form>
   </dialog>
 
+
+  <dialog id="authDialog">
+    <form id="authForm" class="sell-form">
+      <div class="dialog-head">
+        <div><p class="eyebrow">CLOUD SAVE</p><h2>クラウド保存を使う</h2><p class="section-help">PC・スマホで同じ記録を使えます。</p></div>
+        <button type="button" class="icon-btn" id="closeAuthDialog">×</button>
+      </div>
+      <div class="auth-tabs">
+        <button type="button" id="loginTab" class="auth-tab active">ログイン</button>
+        <button type="button" id="signupTab" class="auth-tab">新規登録</button>
+      </div>
+      <label>メールアドレス<input id="authEmail" type="email" required /></label>
+      <label>パスワード<input id="authPassword" type="password" minlength="8" required /></label>
+      <p id="authMessage" class="auth-message"></p>
+      <button id="authSubmitButton" type="submit">ログイン</button>
+      <button id="cancelAuth" class="secondary" type="button">キャンセル</button>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -29,12 +29,80 @@ function todayString() {
 document.getElementById("buyDate").value = todayString();
 document.getElementById("sellDate").value = todayString();
 
+const SUPABASE_URL = "https://keozmemygmuthmedycyy.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_hAOUaw4ZpC1rJ-Iu0zPqHg_A-MYRHNu";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let currentUser = null;
+let cloudTrades = [];
+let authMode = "login";
+
 function loadTrades() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  return currentUser ? cloudTrades : JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 }
 
 function saveTrades(trades) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
+  if (!currentUser) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
+    return;
+  }
+  cloudTrades = trades;
+  syncAllTradesToCloud(trades).catch(err => {
+    console.error(err);
+    alert("クラウド保存に失敗しました。");
+  });
+}
+
+async function fetchCloudTrades() {
+  const { data, error } = await supabaseClient.from("trades")
+    .select("trade_id,data,updated_at")
+    .eq("user_id", currentUser.id)
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data || []).map(r => r.data);
+}
+
+async function syncAllTradesToCloud(trades) {
+  if (!currentUser) return;
+  const rows = trades.map(t => ({
+    user_id: currentUser.id,
+    trade_id: String(t.id),
+    data: t,
+    updated_at: new Date().toISOString()
+  }));
+  if (rows.length) {
+    const { error } = await supabaseClient.from("trades").upsert(rows, { onConflict: "user_id,trade_id" });
+    if (error) throw error;
+  }
+}
+
+async function migrateLocalTradesToCloud() {
+  const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  if (!currentUser || !local.length) return;
+  const existing = await fetchCloudTrades();
+  const merged = new Map(existing.map(t => [String(t.id), t]));
+  local.forEach(t => merged.set(String(t.id), t));
+  cloudTrades = [...merged.values()];
+  await syncAllTradesToCloud(cloudTrades);
+}
+
+function updateSaveModeUI() {
+  const loggedIn = !!currentUser;
+  document.getElementById("saveModeText").textContent = loggedIn ? "クラウド保存中" : "ゲスト利用中";
+  document.getElementById("saveModeHelp").textContent = loggedIn ? `${currentUser.email} で同期されています。` : "この端末のブラウザにのみ保存されています。";
+  document.getElementById("openAuthButton").style.display = loggedIn ? "none" : "inline-flex";
+  document.getElementById("logoutButton").style.display = loggedIn ? "inline-flex" : "none";
+}
+
+async function initializeAuth() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  currentUser = session?.user || null;
+  if (currentUser) {
+    await migrateLocalTradesToCloud();
+    cloudTrades = await fetchCloudTrades();
+  }
+  updateSaveModeUI();
+  renderTrades();
 }
 
 function escapeHtml(v) {
@@ -588,4 +656,61 @@ showDemoButton?.addEventListener("click", () => {
   });
 });
 
-renderTrades();
+initializeAuth();
+
+const authDialog = document.getElementById("authDialog");
+const authForm = document.getElementById("authForm");
+const authMessage = document.getElementById("authMessage");
+const authSubmitButton = document.getElementById("authSubmitButton");
+
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById("loginTab").classList.toggle("active", mode === "login");
+  document.getElementById("signupTab").classList.toggle("active", mode === "signup");
+  authSubmitButton.textContent = mode === "login" ? "ログイン" : "無料アカウントを作成";
+  authMessage.textContent = "";
+}
+document.getElementById("openAuthButton").addEventListener("click", () => { setAuthMode("login"); authDialog.showModal(); });
+document.getElementById("loginTab").addEventListener("click", () => setAuthMode("login"));
+document.getElementById("signupTab").addEventListener("click", () => setAuthMode("signup"));
+document.getElementById("closeAuthDialog").addEventListener("click", () => authDialog.close());
+document.getElementById("cancelAuth").addEventListener("click", () => authDialog.close());
+
+authForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  authSubmitButton.disabled = true;
+  try {
+    if (authMode === "login") {
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseClient.auth.signUp({ email, password });
+      if (error) throw error;
+    }
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    currentUser = session?.user || null;
+    if (currentUser) {
+      await migrateLocalTradesToCloud();
+      cloudTrades = await fetchCloudTrades();
+      authDialog.close();
+      updateSaveModeUI();
+      renderTrades();
+    } else {
+      authMessage.textContent = "登録しました。確認メールが届いた場合はメール内のリンクを開いてください。";
+    }
+  } catch (err) {
+    authMessage.textContent = err.message || "処理に失敗しました。";
+  } finally {
+    authSubmitButton.disabled = false;
+  }
+});
+
+document.getElementById("logoutButton").addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  currentUser = null;
+  cloudTrades = [];
+  updateSaveModeUI();
+  renderTrades();
+});
